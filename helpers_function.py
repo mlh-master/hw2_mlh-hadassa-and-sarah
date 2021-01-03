@@ -1,5 +1,6 @@
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import log_loss, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import log_loss, roc_auc_score, f1_score, accuracy_score
 import pandas as pd 
 import numpy as np
 from pathlib import Path
@@ -51,9 +52,8 @@ def to_one_hot(set):
         
     return pd.DataFrame(dict_dataset)
 
-def tune_LinReg(kf, X, y, K=5):
+def tune_LogReg(kf, X, y, K=5):
     warnings.filterwarnings("ignore", category=UserWarning)
-    print("here")
     validation_dict = []
     C = np.logspace(-1,3,5)
     penalty = ['l1','l2','elasticnet']
@@ -77,3 +77,50 @@ def tune_LinReg(kf, X, y, K=5):
             validation_dict.append(elem_dict)
     list_scores = [elem_dict['auc_score'] for elem_dict in validation_dict]
     return validation_dict[np.argmax(list_scores)]
+
+def tune_RandForest(kf, X, y, K=5):
+    warnings.filterwarnings("ignore", category=UserWarning)
+    np.seterr(divide='ignore', invalid='ignore')
+    validation_dict = []
+    
+    nb_trees = [1,10,100,200,500]
+    crits=['gini','entropy'] #criterion
+    bool_oobs = [True, False] #oob_score
+    sqrt_nb_ft = int(np.sqrt(X.shape[1]))
+    max_ft = range(2, sqrt_nb_ft+3) #Max features
+    counter = 0
+    # Going through each combination of parameters and getting the median of the folds' f1 scores
+    for nb_tr in nb_trees:
+        for crit in crits:
+            for bool_oob in bool_oobs:
+                for nb_ft in max_ft:
+                    clf = RandomForestClassifier(class_weight='balanced', n_estimators=int(nb_tr), criterion=crit, max_features=nb_ft, oob_score=bool_oob)
+                    curr_auc = []
+                    for train_idx, val_idx in kf.split(X, y.iloc[:,1]):
+                        x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
+                        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+                        clf.fit(x_train,y_train.iloc[:,1])
+                        y_pred = clf.predict_proba(x_val)
+                        score = roc_auc_score(y_val.iloc[:,1], y_pred[:,1])
+                        curr_auc.append(score)
+                    elem_dict = {"Nb_trees":nb_tr,
+                                 "Criterion":crit,
+                                 "Max_features":nb_ft,
+                                 "oob_score":bool_oob,
+                                 "auc_score": np.median(curr_auc)}
+                    validation_dict.append(elem_dict)
+    list_scores = [elem_dict['auc_score'] for elem_dict in validation_dict]
+    return validation_dict[np.argmax(list_scores)]
+
+def report_performance(clf, X, y, type_decision='decision_function'):
+    y_pred = clf.predict(X)
+    f1_sc = f1_score(y, y_pred)
+    acc_sc = accuracy_score(y, y_pred)
+    if type_decision=='decision_function':
+        y_pred_prob = clf.decision_function(X)
+    else:
+        y_pred_prob = clf.predict_proba(X)[:,1]
+    auc_sc = roc_auc_score(y, y_pred_prob)
+    log_loss_sc = log_loss(y, y_pred_prob)
+    
+    return [f1_sc, acc_sc, auc_sc, log_loss_sc]
