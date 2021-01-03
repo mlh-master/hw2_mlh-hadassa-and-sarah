@@ -83,11 +83,11 @@ def tune_RandForest(kf, X, y, K=5):
     np.seterr(divide='ignore', invalid='ignore')
     validation_dict = []
     
-    nb_trees = [1,10,100,200,500]
+    nb_trees = [1,10,100,200]
     crits=['gini','entropy'] #criterion
     bool_oobs = [True, False] #oob_score
     sqrt_nb_ft = int(np.sqrt(X.shape[1]))
-    max_ft = range(2, sqrt_nb_ft+3) #Max features
+    max_ft = range(2, sqrt_nb_ft) #Max features
     counter = 0
     # Going through each combination of parameters and getting the median of the folds' f1 scores
     for nb_tr in nb_trees:
