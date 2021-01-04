@@ -63,12 +63,13 @@ def tune_LogReg(kf, X, y, K=5):
             loss_val_vec = np.zeros(K)
             k = 0 
             curr_auc = []
-            for train_idx, val_idx in kf.split(X, y.iloc[:,1]):
+            #.iloc[:]
+            for train_idx, val_idx in kf.split(X, y):
                 x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
                 y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-                logreg.fit(x_train,y_train.iloc[:,1])
+                logreg.fit(x_train,y_train)
                 y_pred = logreg.decision_function(x_val)
-                score = roc_auc_score(y_val.iloc[:,1], y_pred)
+                score = roc_auc_score(y_val, y_pred)
                 k = k + 1
                 curr_auc.append(score)
             elem_dict = {"C": c,
@@ -96,12 +97,12 @@ def tune_RandForest(kf, X, y, K=5):
                 for nb_ft in max_ft:
                     clf = RandomForestClassifier(class_weight='balanced', n_estimators=int(nb_tr), criterion=crit, max_features=nb_ft, oob_score=bool_oob)
                     curr_auc = []
-                    for train_idx, val_idx in kf.split(X, y.iloc[:,1]):
+                    for train_idx, val_idx in kf.split(X, y):
                         x_train, x_val = X.iloc[train_idx], X.iloc[val_idx]
                         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-                        clf.fit(x_train,y_train.iloc[:,1])
+                        clf.fit(x_train,y_train)
                         y_pred = clf.predict_proba(x_val)
-                        score = roc_auc_score(y_val.iloc[:,1], y_pred[:,1])
+                        score = roc_auc_score(y_val, y_pred[:,1])
                         curr_auc.append(score)
                     elem_dict = {"Nb_trees":nb_tr,
                                  "Criterion":crit,
