@@ -9,11 +9,8 @@ import warnings
 
 T1D_dataset = pd.read_csv('HW2_data.csv') # load the data
 
-#print(T1D_dataset)
 
-# We go through the list of features (without extra_feature), transform the
-# non-numerical values to NaN, then replace the NaN by random values of the
-# same column and put the values in a dictionary.
+# Aims to replace nans with random values
 def nan2rand_val(dataset):
     """
     :param CTG_features: Pandas series of CTG features
@@ -34,24 +31,7 @@ def nan2rand_val(dataset):
         dict_dataset[ft] = col
     return pd.DataFrame(dict_dataset)
 
-#print(nan2rand_val(T1D_dataset))
-
-def to_one_hot(set):
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    lft = list(set.columns.values)
-    dict_dataset = {}
-    for ft in lft:
-        col = np.array(set[ft].copy())
-        col[col=='Yes'] = 1
-        col[col=='Positive'] = 1
-        col[col=='Female'] = 1
-        col[col=='No'] = 0
-        col[col=='Negative'] = 0
-        col[col=='Male'] = 0
-        dict_dataset[ft] = col
-        
-    return pd.DataFrame(dict_dataset)
-
+# Aims to tune the best parameters for logistic regression
 def tune_LogReg(kf, X, y, K=5):
     warnings.filterwarnings("ignore", category=UserWarning)
     validation_dict = []
@@ -79,6 +59,7 @@ def tune_LogReg(kf, X, y, K=5):
     list_scores = [elem_dict['auc_score'] for elem_dict in validation_dict]
     return validation_dict[np.argmax(list_scores)]
 
+# Aims to tune the best parameters for random forest
 def tune_RandForest(kf, X, y, K=5):
     warnings.filterwarnings("ignore", category=UserWarning)
     np.seterr(divide='ignore', invalid='ignore')
@@ -113,6 +94,7 @@ def tune_RandForest(kf, X, y, K=5):
     list_scores = [elem_dict['auc_score'] for elem_dict in validation_dict]
     return validation_dict[np.argmax(list_scores)]
 
+# Aims to reports different performance score for a given classifier on a given set
 def report_performance(clf, X, y, type_decision='decision_function'):
     y_pred = clf.predict(X)
     f1_sc = f1_score(y, y_pred)
